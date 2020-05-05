@@ -334,19 +334,6 @@ macro(juce_add_module module)
                     "${JUCE_${module}_platformlibs}"
             )
 
-            # Show juce sources but do not compile them
-            file(GLOB_RECURSE source_module
-                     "${JUCE_MODULES_PREFIX}/${module}/*.c*"
-                     "${JUCE_MODULES_PREFIX}/${module}/*.h*"
-                     "${JUCE_MODULES_PREFIX}/${module}/*.mm"
-                     "${JUCE_MODULES_PREFIX}/${module}/*.txt"
-                     "${JUCE_MODULES_PREFIX}/${module}/*.java")
-             target_sources(${module} INTERFACE ${source_module})
-             set_source_files_properties(${source_module} PROPERTIES HEADER_FILE_ONLY TRUE)
-
-            get_filename_component(JUCE_PARENT_DIR ${JUCE_ROOT_DIR} DIRECTORY)
-            source_group(TREE "${JUCE_PARENT_DIR}" FILES ${source_module})
-
             # set_property(TARGET ${module} PROPERTY INTERFACE_COMPILE_OPTIONS)
             # set_property(TARGET ${module} PROPERTY INTERFACE_COMPILE_DEFINITIONS)
         else()
@@ -449,7 +436,7 @@ mark_as_advanced(JUCE_ROOT_DIR)
 set(JUCE_INCLUDE_DIR ${JUCE_MODULES_PREFIX} CACHE PATH "Juce modules include directory")
 mark_as_advanced(JUCE_INCLUDE_DIR)
 
-set(JUCE_INCLUDE_DIR ${JUCE_INCLUDE_DIR} "${PROJECT_BINARY_DIR}/JuceLibraryCode")
+set(JUCE_INCLUDES ${JUCE_INCLUDE_DIR} "${PROJECT_BINARY_DIR}/JuceLibraryCode")
 
 #------------------------------------------------------------------------------
 # get VERSION
@@ -495,6 +482,7 @@ endforeach()
 
 # TODO: we could make it unique for each call to find_package if necessary using String(RANDOM) to suffix it
 set(JuceLibraryCode "${PROJECT_BINARY_DIR}/JuceLibraryCode")
+list(APPEND JUCE_INCLUDES "${JuceLibraryCode}")
 
 # generate AppConfig.h
 set(JUCE_APPCONFIG_H "${JuceLibraryCode}/AppConfig.h")
@@ -784,12 +772,11 @@ function(juce_add_au target product_name sources)
     )
     juce_set_bundle_properties(${target})
 
-    add_custom_command(
-        TARGET ${target} 
-        POST_BUILD
-        COMMAND killall -9 AudioComponentRegistrar
-        COMMAND auval -v ${AU_TYPE_CODE} ${PLUGIN_CODE} ${PLUGIN_MANUFACTURER_CODE}
-    )
+#    add_custom_command(
+#        TARGET ${target}
+#        POST_BUILD
+#        COMMAND auval -v ${AU_TYPE_CODE} ${PLUGIN_CODE} ${PLUGIN_MANUFACTURER_CODE}
+#    )
 endfunction()
 
 
@@ -1163,11 +1150,6 @@ function(juce_add_audio_plugin)
         endif()
     endforeach()
 
-	string(LENGTH ${PLUGIN_CODE} PLUGIN_CODE_LENGTH)
-	string(LENGTH ${PLUGIN_MANUFACTURER_CODE} PLUGIN_MANUFACTURER_CODE_LENGTH)
-	if (NOT (PLUGIN_CODE_LENGTH MATCHES "4") OR NOT (PLUGIN_MANUFACTURER_CODE_LENGTH MATCHES "4"))
-		message(FATAL_ERROR "PLUGIN_CODE or PLUGIN_MANUFACTURER_CODE should be 4 chars length") 
-	endif()
     juce_four_chars_to_hex(${PLUGIN_CODE} PLUGIN_CODE_INT)
     juce_four_chars_to_hex(${PLUGIN_MANUFACTURER_CODE} PLUGIN_MANUFACTURER_CODE_INT)
 
